@@ -12,6 +12,11 @@ export const customStore = defineStore({
   state: () => ({
     // declare state yang dibutuhkan
     initialNumber: 10,
+    // declare state untuk handle form
+    formData: {
+      // karena bisa banyak valuenya, kita bentuk dalam object
+      value1: "Placeholder",
+    },
   }),
   // di sini kita akan declare sebuah fungsi (methods) yang akan menambahkan initialNumber sebesar 10000
   // dengan menggunakan "actions".
@@ -24,6 +29,17 @@ export const customStore = defineStore({
     incrementInitialNumber() {
       // untuk akses state tinggal menggunakan "this"
       this.initialNumber += 10000;
+    },
+
+    // method Actions untuk menghandle Form
+    // karena sekarang di sini kita membutuhkan input
+    // maka kita bisa menggunakan parameter di dalam fungsi
+    // yang dibuat
+
+    // sebut saja nama parameternya adalah "payload"
+    formHandler(payload) {
+      // di sini kita akan mengubah keseluruhan dari formData
+      this.formData = payload;
     },
   },
 });
