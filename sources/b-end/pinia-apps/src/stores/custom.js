@@ -1,5 +1,7 @@
 // import defineStore dari pinia
 import { defineStore } from "pinia";
+// import instance axios di sini
+import jokesInstance from "../apis/jokes";
 
 // export store yang dibuat agar dapat digunakan
 // defineStore adalah sebuah fungsi yang menerima options
@@ -17,6 +19,8 @@ export const customStore = defineStore({
       // karena bisa banyak valuenya, kita bentuk dalam object
       value1: "Placeholder",
     },
+    // declare state untuk berisi kumpulan dari jokes
+    jokes: [],
   }),
   // di sini kita akan declare sebuah fungsi (methods) yang akan menambahkan initialNumber sebesar 10000
   // dengan menggunakan "actions".
@@ -40,6 +44,34 @@ export const customStore = defineStore({
     formHandler(payload) {
       // di sini kita akan mengubah keseluruhan dari formData
       this.formData = payload;
+    },
+
+    // method Actions untuk mengambil data dari API Jokes
+    // karena di sini akan mengambil data, yang mana durasi
+    // pengerjaannya tidak menentu, maka kita akan menggunakan
+    // logicnya secara asynchronous
+
+    // tambahkan kata kata async di depan actions yang dibuat
+    async fetchJokes() {
+      try {
+        // kita ambil data dari jokes api
+        const response = await jokesInstance.get(
+          "/joke/Any?blacklistFlags=nsfw,religious,political,racist,sexist,explicit&type=twopart&amount=10"
+        );
+
+        console.log(response.data);
+
+        // apabila berhasil mendapatkan response (dunia sempurna)
+        // maka kita akan set state jokesnya
+
+        // data jokes ada pada Object punya props jokes
+        this.jokes = response.data.jokes;
+      } catch (err) {
+        // error sederhana dengan console log
+        // bila dibutuhkan bisa menggunakan sebuah state error
+        //    atau langsung memberikan toast / swal
+        console.log(err.response);
+      }
     },
   },
 });

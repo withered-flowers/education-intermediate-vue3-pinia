@@ -575,11 +575,197 @@ Selanjutnya kita akan mulai bermain dengan tarikan data !
 
 #### Langkah Ketiga - Table Section
 
-### Hint Pinia
+Pada bagian ini kita akan mencoba untuk menyelesaikan bagian pada `Table`, dimana table ini akan menampilkan data dari eksternal (Jokes API), kemudian akan ditampilkan pada Tabel yang sudah kita buat sebelumnya.
 
-### TL;DR
+Langkah-langkah pengerjaannya adalah sebagai berikut:
+1. Menyiapkan data provider berupa `axios instance` terlebih dahulu. Membuat folder `/src/apis` dan membuat sebuah file dengan nama `jokes.js`
+1. Memodifikasi kode pada `/src/apis/jokes.js` sebagai berikut:
+    ```js
+    // import axios
+    import axios from "axios";
+
+    // membuat instance axios berdasarkan api yang digunakan
+    // https://v2.jokeapi.dev
+    const instance = axios.create({
+      baseURL: "https://v2.jokeapi.dev/",
+      // apabila membutuhkan header authorization
+      //  (bearer / token / basic)
+      //  bisa diletakkan di sini
+    });
+
+    // jangan lupa diexport karena akan digunakan di tempat lainny
+    export default instance;
+    ```
+1. Membuat sebuah method untuk mengambil data dari instance yang sudah dibuat. Sebut saja nama `method` nya adalah `fetchJokes`, dan karena kita sedang menggunakan pinia, maka `method` ini akan kita letakkan pada `actions` yang ada pada store pinia (`src/stores/custom.js`, bagian props `actions`). Namun supaya ada data yang dapat disimpan juga, maka kita juga akan membutuhkan sebuah `state` untuk menampung data kembalian dari pengambilan data dari API ini (sebut saja namanya adalah sebuah `state` dengan nama `jokes`).
+1. Memodifikasi file `src/stores/custom.js` menjadi seperti berikut
+    ```js
+    import { defineStore } from "pinia";
+    // import instance axios di sini
+    import jokesInstance from "../apis/jokes";
+
+    export const customStore = defineStore({
+      id: "custom",
+      state: () => ({
+        initialNumber: 10,
+        formData: {
+          value1: "Placeholder",
+        },
+        // declare state untuk berisi kumpulan dari jokes
+        jokes: [],
+      }),
+      actions: {
+        incrementInitialNumber() {
+          this.initialNumber += 10000;
+        },
+
+        formHandler(payload) {
+          this.formData = payload;
+        },
+
+        // method Actions untuk mengambil data dari API Jokes
+        // karena di sini akan mengambil data, yang mana durasi
+        // pengerjaannya tidak menentu, maka kita akan menggunakan
+        // logicnya secara asynchronous
+
+        // tambahkan kata kata async di depan actions yang dibuat
+        async fetchJokes() {
+          try {
+            // kita ambil data dari jokes api
+            const response = await jokesInstance.get(
+              "/joke/Any?blacklistFlags=nsfw,religious,political,racist,sexist,explicit&type=twopart&amount=10"
+            );
+
+            // apabila berhasil mendapatkan response (dunia sempurna)
+            // maka kita akan set state jokesnya
+
+            // data jokes ada pada Object punya props jokes
+            this.jokes = response.data.jokes;
+          } catch (err) {
+            // error sederhana dengan console log
+            // bila dibutuhkan bisa menggunakan sebuah state error
+            //    atau langsung memberikan toast / swal
+            console.log(err.response);
+          }
+        },
+      },
+    });
+    ```
+1. Selanjutnya kita akan menyambungkan logic yang sudah dibuat pada stores ini dengan component yang sudah dibuat, yaitu `TableContent` dan `TableList`
+1. Memodifikasi component `TableList.vue` untuk memanggil fungsi `fetchJokes` pada saat component ini ada (`created`)
+    ```js
+    <script>
+    // import mapActions
+    import { mapActions } from "pinia";
+    // import stores
+    import { customStore } from "../stores/custom";
+    import TableContent from "./TableContent.vue";
+    export default {
+      components: { TableContent },
+      name: "TableList",
+      // declare actions pada methods
+      methods: {
+        ...mapActions(customStore, ["fetchJokes"]),
+      },
+      // panggil methods pada created
+      created() {
+        this.fetchJokes();
+      },
+    };
+    </script>
+
+    <template>
+      <table class="table-fixed w-full border-collapse border border-gray-300">
+        <thead>
+          <tr class="bg-gray-100">
+            <th class="w-1/6 border border-gray-300">ID</th>
+            <th class="w-1/3 border border-gray-300">Setup</th>
+            <th class="w-1/3 border border-gray-300">Punchline</th>
+          </tr>
+        </thead>
+        <table-content></table-content>
+      </table>
+    </template>
+
+    <style scoped></style>
+    ```
+1. Sampai pada titik ini, pada saat component `TableList` akan dirender, maka akan memanggil `actions` bernama `fetchJokes` dan akan mengubah state `jokes`. Namun `jokes` ini masih *nganggur*. Selanjutnya kita akan membaca state `jokes` ini dan menampilkannya pada `TableContent`. Ingat bahwa `TableContent` ini adalah data **per baris**, sehingga harus dilakukan looping.
+1. Memodifikasi file `TableList.vue` lagi untuk membaca state `jokes`:
+    ```js
+    <script>
+    // import mapActions dan mapState
+    import { mapActions, mapState } from "pinia";
+    import { customStore } from "../stores/custom";
+    import TableContent from "./TableContent.vue";
+    export default {
+      components: { TableContent },
+      name: "TableList",
+     methods: {
+        ...mapActions(customStore, ["fetchJokes"]),
+      },
+      // declare state pada computed
+      computed: {
+        ...mapState(customStore, ["jokes"]),
+      },
+      created() {
+        this.fetchJokes();
+      },
+    };
+    </script>
+
+    <template>
+      <table class="table-fixed w-full border-collapse border border-gray-300">
+        <thead>
+          <tr class="bg-gray-100">
+            <th class="w-1/6 border border-gray-300">ID</th>
+            <th class="w-1/3 border border-gray-300">Setup</th>
+            <th class="w-1/3 border border-gray-300">Punchline</th>
+          </tr>
+        </thead>
+        <!-- karena sekarang kita butuh looping -->
+        <!-- Maka kita akan menggunkan v-for dan anggap state jokes seperti -->
+        <!-- computed pada umumnya  -->
+        <table-content
+          v-for="joke in jokes"
+          v-bind:key="joke.id"
+          v-bind:jokeYangDilempar="joke"
+        ></table-content>
+      </table>
+    </template>
+
+    <style scoped></style>
+    ```
+1. Perhatikan pada kode di atas, bahwa pada akhirnya kita menggunakan cara normal pada Vue (menggunakan v-bind custom attributes), yang mana artinya sekarang kita akan memodifikasi `TableContent.vue` untuk menerima custom attributes tersebut melalui ... `props` ! Memodifikasi kode `TableContent.vue` sebagai berikut:
+    ```js
+    <script>
+    export default {
+      name: "TableContent",
+      // menerima props
+      props: ["jokeYangDilempar"],
+    };
+    </script>
+
+    <template>
+      <tbody>
+        <tr>
+          <!-- Kita gunakan props punya data di sini -->
+          <td class="border border-gray-300">{{ jokeYangDilempar.id }}</td>
+          <td class="border border-gray-300">{{ jokeYangDilempar.setup }}</td>
+          <td class="border border-gray-300">{{ jokeYangDilempar.delivery }}</td>
+        </tr>
+      </tbody>
+    </template>
+
+    <style scoped></style>
+    ```
+1. Lessons Learned: Jadi tidak pasti bahwa dengan menggunakan Pinia artinya kita benar benar **100% meninggalkan props** yah 😊, hanya penggunaannya jadi lebih berkurang !
+
+### Hint Pinia
+- Harus mengetahui kapan menggunakan `state`, `action`, dan `getter`
+- Ingat bahwa Pinia memiliki built in function untuk mempermudah hidup (`mapXXX`)
+- Untuk mengkombinasikan dengan router, bisa menggunakan `markRaw` ataupun menggunakan `composing actions` (lihat referensi di bawah untuk `markRaw`)
 
 ### References
 - https://pinia.vuejs.org/
 - https://pinia.vuejs.org/core-concepts/state.html#usage-with-the-options-api
 - https://tailwindcss.com/docs/guides/vite
+- https://pinia.vuejs.org/core-concepts/plugins.html#adding-new-external-properties
