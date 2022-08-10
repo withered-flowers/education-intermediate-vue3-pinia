@@ -762,7 +762,7 @@ Langkah-langkah pengerjaannya adalah sebagai berikut:
 ### Hint Pinia
 - Harus mengetahui kapan menggunakan `state`, `action`, dan `getter`
 - Ingat bahwa Pinia memiliki built in function untuk mempermudah hidup (`mapXXX`)
-- Untuk mengkombinasikan dengan router, bisa menggunakan `markRaw` ataupun menggunakan `composing actions` (lihat referensi di bawah untuk `markRaw`)
+- Untuk mengkombinasikan dengan router, bisa menggunakan `markRaw` (lihat referensi di bawah untuk `markRaw`)
 
 ### References
 - https://pinia.vuejs.org/
